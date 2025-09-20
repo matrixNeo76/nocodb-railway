@@ -1,19 +1,13 @@
 # Dockerfile
 FROM nocodb/nocodb:latest
 
-# Set environment variables that Railway will populate
-ENV PORT=${PORT:-8080}
-ENV NC_PUBLIC_URL=${RAILWAY_STATIC_URL}
+# Railway porta automatico
+ENV PORT=8080
+EXPOSE 8080
 
-# Railway health check
+# Health check per Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT}/api/v1/health || exit 1
-
-# Expose the port
-EXPOSE ${PORT}
-
-# Start NocoDB
-CMD ["node", "docker/main.js"]
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/v1/health || exit 1
 
 ---
 
@@ -25,7 +19,18 @@ dockerfile = "Dockerfile"
 healthcheckPath = "/api/v1/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+
+---
+
+# package.json
+{
+  "name": "nocodb-existing-project",
+  "version": "1.0.0",
+  "description": "NocoDB integration for existing Railway AI project",
+  "engines": {
+    "node": ">=18"
+  }
+}
 
 ---
 
@@ -38,35 +43,63 @@ node_modules/
 ---
 
 # README.md
-# NocoDB for Railway
+# NocoDB Integration per Progetto Railway Esistente
 
-This repository deploys NocoDB on Railway with proper configuration.
+Questo repository aggiunge **SOLO NocoDB** al tuo progetto Railway esistente, 
+utilizzando i database PostgreSQL e Redis già presenti.
 
-## Environment Variables Required:
+## ⚠️ IMPORTANTE
+- **NON installa** nuovi database
+- **USA** il PostgreSQL esistente del tuo progetto
+- **USA** il Redis esistente del tuo progetto
 
-- `NC_DB`: Database connection string
-- `NC_AUTH_JWT_SECRET`: JWT secret for authentication
-- `PORT`: Port (Railway sets this automatically)
+## Environment Variables da Configurare:
+
+```bash
+# Database - USA QUELLO ESISTENTE
+NC_DB=postgresql://${{Postgres.PGUSER}}:${{Postgres.PGPASSWORD}}@${{Postgres.PGHOST}}:${{Postgres.PGPORT}}/${{Postgres.PGDATABASE}}
+
+# JWT Secret (genera uno random lungo)
+NC_AUTH_JWT_SECRET=your-super-secure-jwt-secret-minimum-256-characters
+
+# Redis esistente (opzionale ma consigliato)
+NC_REDIS_URL=${{Redis.REDIS_PRIVATE_URL}}
+
+# URL pubblico (Railway lo imposta automaticamente)
+NC_PUBLIC_URL=${{RAILWAY_STATIC_URL}}
+
+# Port (Railway lo imposta automaticamente)
+PORT=8080
+
+# Disabilita telemetria
+NC_DISABLE_TELE=true
+```
 
 ## Deploy Steps:
 
-1. Fork this repository
-2. Connect to Railway
-3. Set environment variables
-4. Deploy
+1. **Crea questo repository** con i file sopra
+2. **Nel tuo progetto Railway esistente**: New Service → GitHub Repo
+3. **Seleziona questo repository**
+4. **Aggiungi le environment variables** elencate sopra
+5. **Deploy e attendi** (2-3 minuti)
+6. **Accedi a NocoDB** tramite l'URL Railway generato
 
----
+## Struttura Finale Progetto:
 
-# package.json
-{
-  "name": "nocodb-railway",
-  "version": "1.0.0",
-  "description": "NocoDB deployment for Railway",
-  "scripts": {
-    "start": "node docker/main.js"
-  },
-  "dependencies": {},
-  "engines": {
-    "node": ">=18"
-  }
-}
+```
+Il Tuo Progetto Railway:
+├── n8n Services
+├── Flowise Services  
+├── PostgreSQL ←── CONDIVISO con NocoDB
+├── Redis ←────── CONDIVISO con NocoDB
+├── Qdrant
+├── SearXNG
+├── Crawl4AI
+└── NocoDB ←──── NUOVO (usa risorse esistenti)
+```
+
+## Note:
+- NocoDB userà lo **stesso database** degli altri servizi
+- **Comunicazione veloce** via Private Network
+- **Zero costi** di traffico aggiuntivi
+- **Gestione unificata** in un solo progetto
