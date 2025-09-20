@@ -1,0 +1,8 @@
+{
+  "name": "nocodb-railway-integration",
+  "version": "1.0.0",
+  "description": "NocoDB integration for existing Railway project",
+  "engines": {
+    "node": ">=18"
+  }
+}
